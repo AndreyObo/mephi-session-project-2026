@@ -1,6 +1,7 @@
 sudo hostnamectl set-hostname mephi-2026.domain.local
 sudo nmcli con add type ethernet con-name static-eth ifname enp0s3 ipv4.method manual ipv4.addresses 192.168.0.100/24 ipv4.gateway 192.168.0.1 ipv4.dns 8.8.8.8
 sudo nmcli con up static-eth
+echo "127.0.0.1 mephi-2026.domain.local" | sudo tee -a /etc/hosts
 ping -c 4 8.8.8.8 > /tmp/network_check.txt 
 ping -c 4 192.168.0.1 >> /tmp/network_check.txt
 sudo dnf check-update

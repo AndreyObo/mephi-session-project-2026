@@ -1,0 +1,43 @@
+sudo hostnamectl set-hostname mephi-2026.domain.local
+sudo nmcli con add type ethernet con-name static-eth ifname enp0s3 ipv4.method manual ipv4.addresses 192.168.0.100/24 ipv4.gateway 192.168.0.1 ipv4.dns 8.8.8.8
+ping -c 4 8.8.8.8 > /tmp/network_check.txt 
+ping -c 4 192.168.0.1 >> /tmp/network_check.txt
+sudo dnf check-update
+sudo dnf install nginx tcpdump libcap-ng-utils
+cd /tmp
+dnf download tcpdump
+sudo rpm -ivh tcpdump*.rpm
+sudo fdisk /dev/sdb
+sudo mkfs.ext4 -L MEPHI_DATA /dev/sdb1
+sudo mkdir -p /data/mephi-web
+echo "LABEL=MEPHI_DATA /data/mephi-web ext4 defaults 0 2" | sudo tee -a /etc/fstab
+sudo systemctl daemon-reload
+sudo mount -a
+df -h | grep mephi
+sudo systemctl enable --now nginx
+sudo systemctl status nginx
+journalctl -u nginx --since "5 minutes ago" > /tmp/nginx_recent_logs.txt
+sudo groupadd mephi-devs
+sudo useradd -m -G mephi-devs mephi-admin
+echo "mephi-admin:P@ssw0rd2026" | sudo chpasswd
+sudo chown -R mephi-admin:mephi-devs /data/mephi-web
+sudo chmod -R 2775 /data/mephi-web
+getenforce
+sudo semanage fcontext -a -t httpd_sys_content_t "/data/mephi-web(/.*)?"
+sudo restorecon -Rv /data/mephi-web
+sudo chmod u-s /usr/sbin/tcpdump
+sudo setcap 'cap_net_raw,cap_net_admin+ep' /usr/sbin/tcpdump
+sudo -u mephi-admin tcpdump --help
+echo "root" | sudo tee /etc/denied_users
+sudo sed -i '1i auth required pam_listfile.so item=user sense=deny file=/etc/denied_users onerr=succeed' /etc/pam.d/sshd
+sudo sed -i '1i auth/i auth required pam_listfile.so item=user sense=deny file=/etc/denied_users onerr=succeed' /etc/pam.d/login
+su - mephi-admin
+nano /data/mephi-web/index.html
+sudo nano /etc/nginx/nginx.conf
+sudo systemctl restart nginx
+ip a s
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --reload
+curl http://localhost
+curl http://192.168.0.100
+history > ~/project_history.txt
